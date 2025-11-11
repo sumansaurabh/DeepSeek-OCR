@@ -221,11 +221,62 @@ The current open-source model supports the following modes:
 </table>
 
 
+## Troubleshooting
+
+### Issue #7: ImportError with LlamaFlashAttention2
+
+**Problem**: When using newer versions of transformers (4.50.0+), you may encounter:
+```
+ImportError: cannot import name 'LlamaFlashAttention2' from 'transformers.models.llama.modeling_llama'
+```
+
+**Root Cause**: The model uses `trust_remote_code=True` which downloads custom code from Hugging Face. This code imports `LlamaFlashAttention2`, which was removed in newer transformers versions.
+
+**Solutions**:
+
+#### Solution 1: Use Compatible Transformers Version (Recommended)
+```bash
+pip install 'transformers>=4.46.3,<4.50.0'
+```
+
+#### Solution 2: Use the Safe Wrapper Script
+We provide a safe wrapper that automatically patches the model files:
+```bash
+cd DeepSeek-OCR-master/DeepSeek-OCR-hf
+python run_dpsk_ocr_safe.py
+```
+
+#### Solution 3: Manual Fix with Patch Script
+If you already have the model downloaded and encounter the error:
+```bash
+# Run the fix script to patch cached model files
+python fix_flash_attention_import.py
+
+# Check what would be changed (dry run)
+python fix_flash_attention_import.py --dry-run
+
+# Specify custom cache directory if needed
+python fix_flash_attention_import.py --cache-dir /path/to/cache
+```
+
+The patch script will:
+- Locate your Hugging Face cache directory
+- Find the DeepSeek-OCR model files
+- Patch them to handle the missing import gracefully
+- Create backups of original files
+
+#### Solution 4: Downgrade Transformers
+```bash
+pip install transformers==4.46.3
+```
+
+**Note**: After applying the fix, you can use the model normally with any transformers version.
+
 ## Acknowledgement
 
 We would like to thank [Vary](https://github.com/Ucas-HaoranWei/Vary/), [GOT-OCR2.0](https://github.com/Ucas-HaoranWei/GOT-OCR2.0/), [MinerU](https://github.com/opendatalab/MinerU), [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR), [OneChart](https://github.com/LingyvKong/OneChart), [Slow Perception](https://github.com/Ucas-HaoranWei/Slow-Perception) for their valuable models and ideas.
 
-We also appreciate the benchmarks: [Fox](https://github.com/ucaslcl/Fox), [OminiDocBench](https://github.com/opendatalab/OmniDocBench).
+We also appreciate the benchmarks: [Fox](https://github.com/ucaslcl/Fox), [OmniDocBench](https://github.com/opendatalab/OmniDocBench).
 
 ## Citation
 
