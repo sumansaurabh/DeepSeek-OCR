@@ -1,9 +1,22 @@
+# Core dependencies - Version constraints are critical for compatibility
+# transformers 4.46.3 is required due to LlamaFlashAttention2 dependency
+# Newer versions (4.47+) have removed this class, causing import errors
+# See: https://github.com/deepseek-ai/DeepSeek-OCR/issues/7
 transformers==4.46.3
 tokenizers==0.20.3
+
+# Document processing
 PyMuPDF
 img2pdf
+
+# Model utilities
 einops
 easydict
 addict 
+
+# Image processing
 Pillow
 numpy
+
+# Note: If you must use transformers>=4.47, run compatibility_patch.py before importing the model
+# Example: python compatibility_patch.py && python your_script.py

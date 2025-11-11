@@ -59,6 +59,7 @@
 - [Install](#install)
 - [vLLM Inference](#vllm-inference)
 - [Transformers Inference](#transformers-inference)
+- [Troubleshooting](#troubleshooting)
   
 
 
@@ -220,6 +221,70 @@ The current open-source model supports the following modes:
 </tr>
 </table>
 
+
+## Troubleshooting
+
+### ImportError: cannot import name 'LlamaFlashAttention2'
+
+**Problem:** When using `transformers>=4.47`, you may encounter:
+```
+ImportError: cannot import name 'LlamaFlashAttention2' from 'transformers.models.llama.modeling_llama'
+```
+
+**Root Cause:** DeepSeek-OCR's custom model code (loaded via `trust_remote_code=True`) imports `LlamaFlashAttention2`, which was removed in transformers 4.47+.
+
+**Solutions:**
+
+#### Option 1: Use Recommended Version (Recommended)
+```bash
+pip install transformers==4.46.3
+```
+
+#### Option 2: Use Compatibility Patch
+If you must use `transformers>=4.47`, use the provided compatibility patch:
+
+```bash
+# Check your environment first
+python check_environment.py
+
+# Apply the compatibility patch
+python compatibility_patch.py
+```
+
+Then in your code:
+```python
+# Import the patch BEFORE loading the model
+import compatibility_patch
+
+from transformers import AutoModel, AutoTokenizer
+# ... rest of your code
+```
+
+#### Option 3: Verify Your Environment
+Run the environment checker to diagnose issues:
+```bash
+python check_environment.py
+```
+
+This will validate all dependencies and provide specific recommendations.
+
+### Other Common Issues
+
+**CUDA Out of Memory:**
+- Reduce `base_size` parameter (e.g., from 1024 to 640)
+- Use smaller resolution modes (Tiny: 512×512 instead of Large: 1280×1280)
+- Enable gradient checkpointing if available
+
+**Flash Attention Installation Fails:**
+- Ensure CUDA toolkit is installed (11.8+ recommended)
+- Install with: `pip install flash-attn==2.7.3 --no-build-isolation`
+- If it still fails, the model will fall back to standard attention
+
+**Model Download Issues:**
+- Use `HF_ENDPOINT` environment variable for mirror sites
+- Manually download from [Hugging Face](https://huggingface.co/deepseek-ai/DeepSeek-OCR) and specify local path
+
+For more issues, please check [GitHub Issues](https://github.com/deepseek-ai/DeepSeek-OCR/issues).
 
 ## Acknowledgement
 
