@@ -86,6 +86,8 @@ pip install flash-attn==2.7.3 --no-build-isolation
 ```
 **Note:** if you want vLLM and transformers codes to run in the same environment, you don't need to worry about this installation error like: vllm 0.8.5+cu118 requires transformers>=4.51.1
 
+**Important:** For Google Colab users, make sure to use `transformers==4.47.0` to avoid the `LlamaFlashAttention2` import error. See the [Troubleshooting](#troubleshooting) section for more details
+
 ## vLLM-Inference
 - VLLM:
 >**Note:** change the INPUT_PATH/OUTPUT_PATH and other settings in the DeepSeek-OCR-master/DeepSeek-OCR-vllm/config.py
@@ -220,6 +222,34 @@ The current open-source model supports the following modes:
 </tr>
 </table>
 
+
+## Troubleshooting
+
+### ImportError: cannot import name 'LlamaFlashAttention2'
+
+If you encounter the error:
+```
+ImportError: cannot import name 'LlamaFlashAttention2' from 'transformers.models.llama.modeling_llama'
+```
+
+**Root Cause**: Newer versions of the transformers library (4.48.3+) removed the `LlamaFlashAttention2` class, which causes compatibility issues with the model's custom modeling code downloaded from HuggingFace.
+
+**Solution**: Use a compatible version of transformers. The following versions are known to work:
+- `transformers==4.47.0` (recommended)
+- `transformers==4.46.3`
+- `transformers==4.41.1`
+
+To fix this issue:
+```bash
+pip install transformers==4.47.0
+```
+
+Or update your requirements.txt to specify:
+```
+transformers==4.47.0
+```
+
+This ensures compatibility with the model's attention mechanism implementations.
 
 ## Acknowledgement
 
