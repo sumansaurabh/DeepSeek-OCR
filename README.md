@@ -57,6 +57,7 @@
 
 ## Contents
 - [Install](#install)
+- [Known Issues & Fixes](#known-issues--fixes)
 - [vLLM Inference](#vllm-inference)
 - [Transformers Inference](#transformers-inference)
   
@@ -85,6 +86,61 @@ pip install -r requirements.txt
 pip install flash-attn==2.7.3 --no-build-isolation
 ```
 **Note:** if you want vLLM and transformers codes to run in the same environment, you don't need to worry about this installation error like: vllm 0.8.5+cu118 requires transformers>=4.51.1
+
+## Known Issues & Fixes
+
+### Issue #7: LlamaFlashAttention2 Import Error (transformers 4.57.1+)
+
+**Problem:** When using transformers 4.57.1 or newer versions (also reported in 4.51.1+), you may encounter:
+```
+ImportError: cannot import name 'LlamaFlashAttention2' from 'transformers.models.llama.modeling_llama'
+```
+
+**Solution:** We provide a fix script that patches the transformers library. Use one of the following methods:
+
+**Method 1: Use the Fix Script (Recommended)**
+```python
+# Import and apply the fix before loading the model
+from fix_flash_attention_import import apply_fix
+apply_fix()
+
+# Now load the model normally
+from transformers import AutoModel, AutoTokenizer
+model = AutoModel.from_pretrained('deepseek-ai/DeepSeek-OCR', trust_remote_code=True)
+```
+
+**Method 2: Use the Patched Run Script**
+```bash
+cd DeepSeek-OCR-master/DeepSeek-OCR-hf
+python run_dpsk_ocr_fixed.py
+```
+
+**Method 3: Inline Patch (for Colab/Notebooks)**
+```python
+# Add this BEFORE importing transformers
+from transformers.models.llama import modeling_llama
+
+if not hasattr(modeling_llama, 'LlamaFlashAttention2'):
+    class LlamaFlashAttention2:
+        def __init__(self, *args, **kwargs):
+            raise NotImplementedError("LlamaFlashAttention2 not available")
+    modeling_llama.LlamaFlashAttention2 = LlamaFlashAttention2
+
+# Now proceed normally
+from transformers import AutoModel, AutoTokenizer
+# ... your code
+```
+
+**Testing the Fix:**
+```bash
+python test_fix.py
+```
+
+For detailed information, see [FLASH_ATTENTION_FIX.md](FLASH_ATTENTION_FIX.md).
+
+**Related Issues:**
+- [Issue #7](https://github.com/deepseek-ai/DeepSeek-OCR/issues/7)
+- [DeepSeek-VL2 Issue #87](https://github.com/deepseek-ai/DeepSeek-VL2/issues/87)
 
 ## vLLM-Inference
 - VLLM:
