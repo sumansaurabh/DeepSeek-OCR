@@ -1,0 +1,39 @@
+--- a/modeling_deepseekv2.py
++++ b/modeling_deepseekv2.py
+@@ -34,10 +34,15 @@ from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
+
+ from transformers.activations import ACT2FN
+ from transformers.cache_utils import Cache, DynamicCache
+ from transformers.modeling_attn_mask_utils import _prepare_4d_causal_attention_mask
+-from transformers.models.llama.modeling_llama import (
+-    LlamaAttention,
+-    LlamaFlashAttention2
+-)
++
++# Try to import LlamaFlashAttention2, fall back to None if not available
++# This handles transformers>=4.57.0 where LlamaFlashAttention2 was removed
++try:
++    from transformers.models.llama.modeling_llama import LlamaAttention, LlamaFlashAttention2
++except ImportError:
++    from transformers.models.llama.modeling_llama import LlamaAttention
++    LlamaFlashAttention2 = None
++
+ from transformers.modeling_outputs import (
+     BaseModelOutputWithPast,
+     CausalLMOutputWithPast,
+@@ -1227,13 +1232,14 @@ class DeepseekV2FlashAttention2(DeepseekV2Attention):
+         )
+
+
+ ATTENTION_CLASSES = {
+     "eager": DeepseekV2Attention,
+     "flash_attention_2": DeepseekV2FlashAttention2,
+
+     "mla_eager": DeepseekV2Attention,
+     "mla_flash_attention_2": DeepseekV2FlashAttention2,
+
+     "mha_eager": LlamaAttention,
+-    "mha_flash_attention_2": LlamaFlashAttention2
++    # Use LlamaFlashAttention2 if available, otherwise fall back to LlamaAttention
++    "mha_flash_attention_2": LlamaFlashAttention2 if LlamaFlashAttention2 is not None else LlamaAttention
+ }
