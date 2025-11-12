@@ -220,6 +220,83 @@ The current open-source model supports the following modes:
 </tr>
 </table>
 
+## Troubleshooting
+
+### Issue #7: ImportError: cannot import name 'LlamaFlashAttention2'
+
+**Problem:**
+```
+ImportError: cannot import name 'LlamaFlashAttention2' from 'transformers.models.llama.modeling_llama'
+```
+
+This error occurs when using transformers version 4.52.0 or newer. The `LlamaFlashAttention2` class was removed in newer versions of transformers, but DeepSeek-OCR's model code (loaded via `trust_remote_code=True`) requires it.
+
+**Solution:**
+
+1. **Install the correct transformers version:**
+   ```bash
+   pip uninstall transformers -y
+   pip install transformers==4.46.3
+   ```
+
+2. **Or install all requirements:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Check compatibility before running:**
+   ```bash
+   python check_compatibility.py
+   ```
+
+4. **Use the safe runner script:**
+   ```bash
+   cd DeepSeek-OCR-master/DeepSeek-OCR-hf
+   python run_dpsk_ocr_safe.py
+   ```
+
+**Compatible Versions:**
+- ✅ transformers: 4.46.0 - 4.51.9 (recommended: 4.46.3)
+- ❌ transformers: 4.52.0+ (incompatible - LlamaFlashAttention2 removed)
+- ❌ transformers: 4.57.1 (reported in issue, incompatible)
+
+**Environment Tested:**
+- Python: 3.8+
+- transformers: 4.46.3
+- torch: 2.6.0+
+- CUDA: 11.8+
+
+**Related Issues:**
+- [DeepSeek-OCR Issue #7](https://github.com/deepseek-ai/DeepSeek-OCR/issues/7)
+- [DeepSeek-VL2 Issue #87](https://github.com/deepseek-ai/DeepSeek-VL2/issues/87)
+
+### Common Issues
+
+**Q: Can I use transformers 4.57.1 or newer?**  
+A: No, versions 4.52.0+ are incompatible. You must use transformers 4.46.3 or a version between 4.46.0-4.51.9.
+
+**Q: The model fails to load in Google Colab**  
+A: Colab may have a newer transformers version pre-installed. Run:
+```python
+!pip uninstall transformers -y
+!pip install transformers==4.46.3
+```
+Then restart the runtime.
+
+**Q: How do I check my current transformers version?**  
+A: Run:
+```python
+import transformers
+print(transformers.__version__)
+```
+
+**Q: I still get the error after installing the correct version**  
+A: Try restarting your Python kernel/runtime, or run:
+```bash
+pip cache purge
+pip uninstall transformers -y
+pip install --no-cache-dir transformers==4.46.3
+```
 
 ## Acknowledgement
 
