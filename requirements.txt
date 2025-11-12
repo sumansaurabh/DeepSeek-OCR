@@ -1,3 +1,6 @@
+# IMPORTANT: transformers version must be 4.46.3 or compatible versions
+# Newer versions (4.47+, 4.57+) removed LlamaFlashAttention2 class which causes ImportError
+# See: https://github.com/deepseek-ai/DeepSeek-OCR/issues/7
 transformers==4.46.3
 tokenizers==0.20.3
 PyMuPDF
@@ -7,3 +10,5 @@ easydict
 addict 
 Pillow
 numpy
+# Optional: flash-attn for better performance (requires CUDA)
+# flash-attn==2.7.3
