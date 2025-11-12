@@ -220,6 +220,78 @@ The current open-source model supports the following modes:
 </tr>
 </table>
 
+## Troubleshooting
+
+### Issue: ImportError: cannot import name 'LlamaFlashAttention2' (GitHub Issue #7)
+
+**Problem**: When using transformers >= 4.51.0, you may encounter:
+```
+ImportError: cannot import name 'LlamaFlashAttention2' from 'transformers.models.llama.modeling_llama'
+```
+
+**Root Cause**: The `LlamaFlashAttention2` class was removed from transformers in version 4.51.0+, but the DeepSeek-OCR model code (loaded via `trust_remote_code=True`) still references it.
+
+**Solutions**:
+
+#### Option 1: Use Compatible Transformers Version (Recommended)
+Install a compatible version of transformers:
+```bash
+pip install 'transformers>=4.46.3,<4.51.0'
+```
+
+#### Option 2: Use the Compatibility Patcher
+We provide an automated script to patch the downloaded model files:
+```bash
+python fix_transformers_compatibility.py
+```
+
+This script will:
+- Detect your transformers version
+- Find and patch the cached model files
+- Add try-except blocks around the problematic imports
+- Create backups of original files
+
+#### Option 3: Use Eager Attention
+Modify your code to use eager attention instead of flash_attention_2:
+```python
+model = AutoModel.from_pretrained(
+    model_name, 
+    _attn_implementation='eager',  # Changed from 'flash_attention_2'
+    trust_remote_code=True, 
+    use_safetensors=True
+)
+```
+
+#### Option 4: Manual Patch
+If you prefer to manually patch the model files:
+
+1. Find the model cache directory (usually `~/.cache/huggingface/hub/models--deepseek-ai--DeepSeek-OCR/`)
+2. Locate the `modeling_*.py` file
+3. Replace the import:
+```python
+# Before
+from transformers.models.llama.modeling_llama import LlamaFlashAttention2
+
+# After
+try:
+    from transformers.models.llama.modeling_llama import LlamaFlashAttention2
+except ImportError:
+    LlamaFlashAttention2 = None
+```
+
+### Testing Your Installation
+
+Run the test script to verify your setup:
+```bash
+# Quick test (tokenizer only)
+python test_model_loading.py
+
+# Full test (loads complete model, requires GPU)
+python test_model_loading.py --full-test
+```
+
+### Related Issues
+- Similar issue in DeepSeek-VL2: [Issue #87](https://github.com/deepseek-ai/DeepSeek-VL2/issues/87)
 
 ## Acknowledgement
 
