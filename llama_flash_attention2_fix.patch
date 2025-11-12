@@ -1,0 +1,49 @@
+--- modeling_deepseekv2.py.original	2025-11-12 00:00:00.000000000 +0000
++++ modeling_deepseekv2.py	2025-11-12 00:00:00.000000000 +0000
+@@ -34,10 +34,17 @@
+ from transformers.activations import ACT2FN
+ from transformers.cache_utils import Cache, DynamicCache
+ from transformers.modeling_attn_mask_utils import _prepare_4d_causal_attention_mask
+-from transformers.models.llama.modeling_llama import (
+-    LlamaAttention,
+-    LlamaFlashAttention2
+-)
++# Conditional import to handle different transformers versions
++try:
++    from transformers.models.llama.modeling_llama import (
++        LlamaAttention,
++        LlamaFlashAttention2
++    )
++    _llama_flash_attn2_available = True
++except ImportError:
++    from transformers.models.llama.modeling_llama import LlamaAttention
++    LlamaFlashAttention2 = None  # Fallback when not available
++    _llama_flash_attn2_available = False
+ from transformers.modeling_outputs import (
+     BaseModelOutputWithPast,
+     CausalLMOutputWithPast,
+@@ -74,6 +81,14 @@
+     _prepare_4d_causal_attention_mask = torch.fx.wrap(_prepare_4d_causal_attention_mask)
+
+ logger = logging.get_logger(__name__)
++
++# Log warning if LlamaFlashAttention2 is not available
++if not _llama_flash_attn2_available:
++    logger.warning(
++        "LlamaFlashAttention2 is not available in this version of transformers. "
++        "Falling back to LlamaAttention for MHA flash_attention_2 mode. "
++        "This may occur with transformers>=4.47.1. The model will still work correctly."
++    )
+
+ _CONFIG_FOR_DOC = "DeepseekV2Config"
+
+@@ -1234,7 +1249,8 @@
+     "mla_flash_attention_2": DeepseekV2FlashAttention2,
+
+     "mha_eager": LlamaAttention,
+-    "mha_flash_attention_2": LlamaFlashAttention2
++    # Fallback to LlamaAttention if LlamaFlashAttention2 is not available
++    "mha_flash_attention_2": LlamaFlashAttention2 if _llama_flash_attn2_available else LlamaAttention
+ }
+
+
