@@ -1,4 +1,6 @@
-transformers==4.46.3
+# IMPORTANT: transformers version must be <4.50.0 due to LlamaFlashAttention2 compatibility
+# See TROUBLESHOOTING.md for details on Issue #7
+transformers>=4.46.3,<4.50.0
 tokenizers==0.20.3
 PyMuPDF
 img2pdf

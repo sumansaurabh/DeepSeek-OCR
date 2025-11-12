@@ -66,6 +66,9 @@
 
 ## Install
 >Our environment is cuda11.8+torch2.6.0.
+
+⚠️ **Important:** DeepSeek-OCR requires `transformers>=4.46.3,<4.50.0`. Newer versions (4.50.0+) will cause `ImportError: cannot import name 'LlamaFlashAttention2'`. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#issue-7-importerror-cannot-import-name-llamaflashattention2) for solutions.
+
 1. Clone this repository and navigate to the DeepSeek-OCR folder
 ```bash
 git clone https://github.com/deepseek-ai/DeepSeek-OCR.git
@@ -85,6 +88,12 @@ pip install -r requirements.txt
 pip install flash-attn==2.7.3 --no-build-isolation
 ```
 **Note:** if you want vLLM and transformers codes to run in the same environment, you don't need to worry about this installation error like: vllm 0.8.5+cu118 requires transformers>=4.51.1
+
+4. Verify Installation (Optional)
+```Shell
+python verify_transformers_version.py
+```
+This will check if your transformers version is compatible with DeepSeek-OCR.
 
 ## vLLM-Inference
 - VLLM:
@@ -163,6 +172,9 @@ for output in model_outputs:
 ```
 ## Transformers-Inference
 - Transformers
+
+⚠️ **Troubleshooting:** If you encounter `ImportError: cannot import name 'LlamaFlashAttention2'`, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md#issue-7-importerror-cannot-import-name-llamaflashattention2).
+
 ```python
 from transformers import AutoModel, AutoTokenizer
 import torch
