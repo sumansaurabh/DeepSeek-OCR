@@ -404,6 +404,10 @@ def get_rel_pos(q_size: int, k_size: int, rel_pos: torch.Tensor) -> torch.Tensor
     k_coords = torch.arange(k_size, device=rel_pos.device)[None, :] * max(q_size / k_size, 1.0)
     relative_coords = (q_coords - k_coords) + (k_size - 1) * max(q_size / k_size, 1.0)
 
+    # Clamp relative_coords to valid range [0, max_rel_dist - 1] to prevent out-of-bounds indexing
+    # This fixes CUDA device-side assert errors when processing certain image dimensions
+    relative_coords = torch.clamp(relative_coords, 0, max_rel_dist - 1)
+    
     return rel_pos_resized[relative_coords.long()]
 
 
