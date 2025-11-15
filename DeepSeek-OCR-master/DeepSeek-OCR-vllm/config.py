@@ -36,6 +36,12 @@ PROMPT = '<image>\n<|grounding|>Convert the document to markdown.'
 # '先天下之忧而忧'
 # .......
 
+# Attention Diagnostics Configuration
+# Enable to track FlashAttention usage, fusion types, and quantization
+ENABLE_ATTENTION_DIAGNOSTICS = False  # Set to True to enable diagnostics
+ATTENTION_DIAGNOSTICS_VERBOSE = False  # Set to True for detailed logging
+ATTENTION_DIAGNOSTICS_OUTPUT = ''  # Path to save diagnostics report (empty = no save)
+
 
 from transformers import AutoTokenizer
 

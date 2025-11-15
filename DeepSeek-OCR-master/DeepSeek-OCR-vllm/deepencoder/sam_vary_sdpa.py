@@ -15,6 +15,17 @@ from flash_attn import flash_attn_qkvpacked_func
 
 # from mmgpt.model.vision_encoder.flash_4 import _attention_rel_h_rel_w
 
+import sys
+import os
+# Add parent directory to path for attention_diagnostics import
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from attention_diagnostics import collect_attention_diagnostics
+except ImportError:
+    # Fallback if module not found
+    def collect_attention_diagnostics(*args, **kwargs):
+        pass
+
 
 def get_abs_pos(abs_pos, tgt_size):
 
@@ -287,9 +298,31 @@ class Attention(nn.Module):
             # initialize relative positional embeddings
             self.rel_pos_h = nn.Parameter(torch.zeros(2 * input_size[0] - 1, head_dim))
             self.rel_pos_w = nn.Parameter(torch.zeros(2 * input_size[1] - 1, head_dim))
+        
+        # Track if diagnostics have been collected for this layer
+        self._diagnostics_collected = False
+        self.head_dim = head_dim
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, H, W, _ = x.shape
+        
+        # Collect diagnostics on first forward pass
+        if not self._diagnostics_collected:
+            # Reshape for diagnostics
+            x_reshaped = x.reshape(B, H * W, -1)
+            collect_attention_diagnostics(
+                module=self,
+                layer_name=f"SAM_Attention",
+                use_flash_attn=False,  # SAM uses SDPA
+                num_heads=self.num_heads,
+                head_dim=self.head_dim,
+                input_tensor=x_reshaped,
+                attention_type="self_attention",
+                has_qkv_fusion=True,
+                use_relative_position=self.use_rel_pos
+            )
+            self._diagnostics_collected = True
+        
         # qkv with shape (3, B, nHead, H * W, C)
         qkv = self.qkv(x).reshape(B, H * W, 3, self.num_heads, -1).permute(2, 0, 3, 1, 4)
         # q, k, v with shape (B * nHead, H * W, C)

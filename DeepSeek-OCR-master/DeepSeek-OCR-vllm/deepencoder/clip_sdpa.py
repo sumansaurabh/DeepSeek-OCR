@@ -7,6 +7,16 @@ import torch
 from torch.nn import functional as F
 from torch import nn
 from flash_attn import flash_attn_qkvpacked_func, flash_attn_func
+import sys
+import os
+# Add parent directory to path for attention_diagnostics import
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from attention_diagnostics import collect_attention_diagnostics
+except ImportError:
+    # Fallback if module not found
+    def collect_attention_diagnostics(*args, **kwargs):
+        pass
 # from optimus import flash_attn_func
 # from megatron.core import tensor_parallel
 # from megatron.core import parallel_state as mpu
@@ -239,12 +249,30 @@ class NoTPAttention(torch.nn.Module):
         # self.core_attention = CoreAttention(cfg, AttnType.self_attn)
 
         self.attn_drop = cfg.attention_dropout
+        
+        # Track if diagnostics have been collected for this layer
+        self._diagnostics_collected = False
 
     def forward(
             self,
             x: torch.Tensor,
     ):
         bsz, seqlen, _ = x.shape
+        
+        # Collect diagnostics on first forward pass
+        if not self._diagnostics_collected:
+            collect_attention_diagnostics(
+                module=self,
+                layer_name=f"NoTPAttention",
+                use_flash_attn=self.use_flash_attention,
+                num_heads=self.num_heads,
+                head_dim=self.head_dim,
+                input_tensor=x,
+                attention_type="self_attention",
+                has_qkv_fusion=True
+            )
+            self._diagnostics_collected = True
+        
         xqkv = self.qkv_proj(x)
         xqkv = xqkv.view(bsz, seqlen, 3, self.num_heads, self.head_dim)
 
