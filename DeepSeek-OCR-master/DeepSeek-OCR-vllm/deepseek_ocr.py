@@ -413,12 +413,42 @@ class DeepseekOCRForCausalLM(nn.Module, SupportsMultiModal, SupportsPP):
                         print('=====================')
 
                     _, hw, n_dim = global_features.shape
-                    h = w = int(hw ** 0.5)
+                    # Validate that hw is a perfect square to avoid CUDA device-side assert
+                    sqrt_hw = hw ** 0.5
+                    if sqrt_hw != int(sqrt_hw):
+                        raise ValueError(
+                            f"Expected global features spatial dimensions to be a perfect square, "
+                            f"but got hw={hw} (sqrt={sqrt_hw:.2f}). "
+                            f"This may be caused by incompatible image dimensions. "
+                            f"Image shape: {image_ori.shape}, Features shape: {global_features.shape}"
+                        )
+                    h = w = int(sqrt_hw)
 
                     _2, hw2, n_dim2 = local_features.shape
-                    h2 = w2 = int(hw2 ** 0.5)
+                    # Validate that hw2 is a perfect square to avoid CUDA device-side assert
+                    sqrt_hw2 = hw2 ** 0.5
+                    if sqrt_hw2 != int(sqrt_hw2):
+                        raise ValueError(
+                            f"Expected local features spatial dimensions to be a perfect square, "
+                            f"but got hw2={hw2} (sqrt={sqrt_hw2:.2f}). "
+                            f"This may be caused by incompatible patch dimensions. "
+                            f"Patches shape: {patches.shape}, Features shape: {local_features.shape}"
+                        )
+                    h2 = w2 = int(sqrt_hw2)
 
                     width_crop_num, height_crop_num = crop_shape[0], crop_shape[1]
+
+                    # Validate reshape dimensions before performing the operation
+                    expected_local_size = height_crop_num * width_crop_num * h2 * w2 * n_dim2
+                    actual_local_size = local_features.numel()
+                    if expected_local_size != actual_local_size:
+                        raise ValueError(
+                            f"Cannot reshape local_features: expected total size {expected_local_size} "
+                            f"(height_crop_num={height_crop_num} * width_crop_num={width_crop_num} * "
+                            f"h2={h2} * w2={w2} * n_dim2={n_dim2}) "
+                            f"but got {actual_local_size} elements. "
+                            f"Features shape: {local_features.shape}"
+                        )
 
                     global_features = global_features.view(h, w, n_dim)
 
@@ -450,7 +480,16 @@ class DeepseekOCRForCausalLM(nn.Module, SupportsMultiModal, SupportsPP):
                         print('=====================')
 
                     _, hw, n_dim = global_features.shape
-                    h = w = int(hw ** 0.5)
+                    # Validate that hw is a perfect square to avoid CUDA device-side assert
+                    sqrt_hw = hw ** 0.5
+                    if sqrt_hw != int(sqrt_hw):
+                        raise ValueError(
+                            f"Expected global features spatial dimensions to be a perfect square, "
+                            f"but got hw={hw} (sqrt={sqrt_hw:.2f}). "
+                            f"This may be caused by incompatible image dimensions. "
+                            f"Image shape: {image_ori.shape}, Features shape: {global_features.shape}"
+                        )
+                    h = w = int(sqrt_hw)
 
                     global_features = global_features.view(h, w, n_dim)
 

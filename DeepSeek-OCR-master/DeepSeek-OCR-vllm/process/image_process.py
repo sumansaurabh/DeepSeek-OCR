@@ -385,6 +385,24 @@ class DeepseekOCRProcessor(ProcessorMixin):
 
             global_view = ImageOps.pad(image, (self.base_size, self.base_size),
                                     color=tuple(int(x * 255) for x in self.image_transform.mean))
+
+            # Validate that the global view has the expected dimensions
+            if global_view.size != (self.base_size, self.base_size):
+                raise ValueError(
+                    f"Global view padding failed: expected size ({self.base_size}, {self.base_size}), "
+                    f"but got {global_view.size}. Original image size: {image.size}"
+                )
+
+            # Additional validation: ensure base_size produces square feature maps
+            # For ViT with patch_size=16 and 2 stride-2 convolutions, final size is (base_size/16/2/2)^2
+            # This means base_size must be divisible by 64 (16 * 2 * 2)
+            if self.base_size % 64 != 0:
+                raise ValueError(
+                    f"base_size={self.base_size} will produce non-integer feature map dimensions. "
+                    f"base_size must be divisible by 64 to ensure proper feature extraction. "
+                    f"Recommended values: 512, 640, 1024, 1280, 1536, etc."
+                )
+
             images_list.append(self.image_transform(global_view))
 
             """record height / width crop num"""
@@ -397,6 +415,14 @@ class DeepseekOCRProcessor(ProcessorMixin):
 
             if num_width_tiles > 1 or num_height_tiles > 1:
                 """process the local views"""
+                # Validate image_size for crops as well
+                if self.image_size % 64 != 0:
+                    raise ValueError(
+                        f"image_size={self.image_size} will produce non-integer feature map dimensions in crops. "
+                        f"image_size must be divisible by 64 to ensure proper feature extraction. "
+                        f"Recommended values: 512, 640, 768, 1024, etc."
+                    )
+
                 # local_view = ImageOps.pad(image, (best_width, best_height),
                 #                         color=tuple(int(x * 255) for x in self.image_transform.mean))
                 # for i in range(0, best_height, self.image_size):
@@ -404,7 +430,14 @@ class DeepseekOCRProcessor(ProcessorMixin):
                 #         images_crop_list.append(
                 #             self.image_transform(local_view.crop((j, i, j + self.image_size, i + self.image_size))))
                 for i in range(len(images_crop_raw)):
-                    images_crop_list.append(self.image_transform(images_crop_raw[i]))
+                    crop_img = images_crop_raw[i]
+                    # Validate crop size
+                    if crop_img.size != (self.image_size, self.image_size):
+                        raise ValueError(
+                            f"Crop {i} has incorrect size: expected ({self.image_size}, {self.image_size}), "
+                            f"but got {crop_img.size}"
+                        )
+                    images_crop_list.append(self.image_transform(crop_img))
 
             # """process the global view"""
             # global_view = ImageOps.pad(image, (self.image_size, self.image_size),
