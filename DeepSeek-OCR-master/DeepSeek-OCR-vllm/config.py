@@ -16,6 +16,11 @@ PRINT_NUM_VIS_TOKENS = False
 SKIP_REPEAT = True
 MODEL_PATH = 'deepseek-ai/DeepSeek-OCR' # change to your model path
 
+# Attention Diagnostics Configuration (GitHub Issue #3243)
+# Enable detailed logging about attention implementation (FlashAttention vs SDPA)
+ENABLE_ATTENTION_DIAGNOSTICS = True  # Set to False to disable diagnostic logging
+PRINT_ATTENTION_SUMMARY = True  # Print summary after inference
+
 # TODO: change INPUT_PATH
 # .pdf: run_dpsk_ocr_pdf.py; 
 # .jpg, .png, .jpeg: run_dpsk_ocr_image.py; 

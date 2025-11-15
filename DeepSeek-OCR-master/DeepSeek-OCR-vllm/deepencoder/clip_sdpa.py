@@ -7,6 +7,18 @@ import torch
 from torch.nn import functional as F
 from torch import nn
 from flash_attn import flash_attn_qkvpacked_func, flash_attn_func
+
+# Import attention diagnostics
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from attention_diagnostics import log_attention_info
+    DIAGNOSTICS_AVAILABLE = True
+except ImportError:
+    DIAGNOSTICS_AVAILABLE = False
+    def log_attention_info(*args, **kwargs):
+        pass
 # from optimus import flash_attn_func
 # from megatron.core import tensor_parallel
 # from megatron.core import parallel_state as mpu
@@ -239,6 +251,9 @@ class NoTPAttention(torch.nn.Module):
         # self.core_attention = CoreAttention(cfg, AttnType.self_attn)
 
         self.attn_drop = cfg.attention_dropout
+        
+        # Log attention configuration at initialization
+        self._first_forward = True
 
     def forward(
             self,
@@ -247,6 +262,17 @@ class NoTPAttention(torch.nn.Module):
         bsz, seqlen, _ = x.shape
         xqkv = self.qkv_proj(x)
         xqkv = xqkv.view(bsz, seqlen, 3, self.num_heads, self.head_dim)
+
+        # Log attention implementation on first forward pass
+        if self._first_forward and DIAGNOSTICS_AVAILABLE:
+            log_attention_info(
+                attention_type='clip',
+                use_flash=self.use_flash_attention,
+                batch_size=bsz,
+                seq_len=seqlen,
+                num_heads=self.num_heads
+            )
+            self._first_forward = False
 
         if self.use_flash_attention:
             output = flash_attn_qkvpacked_func(xqkv)

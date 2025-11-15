@@ -15,6 +15,18 @@ from flash_attn import flash_attn_qkvpacked_func
 
 # from mmgpt.model.vision_encoder.flash_4 import _attention_rel_h_rel_w
 
+# Import attention diagnostics
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from attention_diagnostics import log_attention_info
+    DIAGNOSTICS_AVAILABLE = True
+except ImportError:
+    DIAGNOSTICS_AVAILABLE = False
+    def log_attention_info(*args, **kwargs):
+        pass
+
 
 def get_abs_pos(abs_pos, tgt_size):
 
@@ -287,9 +299,24 @@ class Attention(nn.Module):
             # initialize relative positional embeddings
             self.rel_pos_h = nn.Parameter(torch.zeros(2 * input_size[0] - 1, head_dim))
             self.rel_pos_w = nn.Parameter(torch.zeros(2 * input_size[1] - 1, head_dim))
+        
+        # Log attention configuration at initialization
+        self._first_forward = True
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, H, W, _ = x.shape
+        
+        # Log attention implementation on first forward pass
+        if self._first_forward and DIAGNOSTICS_AVAILABLE:
+            log_attention_info(
+                attention_type='sam',
+                use_flash=False,  # SAM uses SDPA, not FlashAttention
+                batch_size=B,
+                seq_len=H * W,
+                num_heads=self.num_heads
+            )
+            self._first_forward = False
+        
         # qkv with shape (3, B, nHead, H * W, C)
         qkv = self.qkv(x).reshape(B, H * W, 3, self.num_heads, -1).permute(2, 0, 3, 1, 4)
         # q, k, v with shape (B * nHead, H * W, C)

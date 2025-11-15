@@ -19,7 +19,19 @@ import numpy as np
 from tqdm import tqdm
 from process.ngram_norepeat import NoRepeatNGramLogitsProcessor
 from process.image_process import DeepseekOCRProcessor
-from config import MODEL_PATH, INPUT_PATH, OUTPUT_PATH, PROMPT, CROP_MODE
+from config import MODEL_PATH, INPUT_PATH, OUTPUT_PATH, PROMPT, CROP_MODE, ENABLE_ATTENTION_DIAGNOSTICS, PRINT_ATTENTION_SUMMARY
+
+# Import attention diagnostics
+if ENABLE_ATTENTION_DIAGNOSTICS:
+    try:
+        from attention_diagnostics import get_diagnostics, print_attention_summary
+        print("\n" + "="*70)
+        print("ATTENTION DIAGNOSTICS ENABLED (GitHub Issue #3243)")
+        print("="*70)
+        diagnostics = get_diagnostics()
+    except ImportError:
+        print("Warning: attention_diagnostics module not found")
+        ENABLE_ATTENTION_DIAGNOSTICS = False
 
 
 
@@ -219,6 +231,9 @@ if __name__ == "__main__":
 
     result_out = asyncio.run(stream_generate(image_features, prompt))
 
+    # Print attention diagnostics summary
+    if ENABLE_ATTENTION_DIAGNOSTICS and PRINT_ATTENTION_SUMMARY:
+        print_attention_summary()
 
     save_results = 1
 
